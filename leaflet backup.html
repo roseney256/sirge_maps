@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+    <title>P360 Maps</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.1.0/dist/geosearch.css"/>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-geosearch@3.1.0/dist/bundle.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@0.7.5/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.1/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.1/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="Control.FullScreen.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <script src="https://unpkg.com/leaflet@latest/dist/leaflet.js"></script>
+	<script src="Control.FullScreen.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.1/leaflet.markercluster.js"></script>
+    
+    <style>
+        body { margin:0; padding:0; }
+        body, table, tr, td, th, div, h1, h2, input { font-family: "Calibri", "Trebuchet MS", "Ubuntu", Serif; font-size: 11pt; }
+        #map { position:absolute; top:0; bottom:0; width:100%; } /* full size */
+        .leaflet-top.leaflet-right {
+            right: 10px;
+            top: 10px;
+        }
+        .leaflet-bar {
+            background-color: white;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+            border-radius: 5px;
+            padding: 5px;
+            margin-bottom: 5px;
+        }
+        .leaflet-bar a {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .leaflet-bar a:hover {
+            background-color: #f4f4f4;
+        }
+        /* .leaflet-control-zoom,
+        .leaflet-control-attribution {
+            display: none;
+        } */
+        .ctl {
+            padding: 2px 10px 2px 10px;
+            background: white;
+            background: rgba(255,255,255,0.9);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+            text-align: right;
+        }
+        .title {
+            font-size: 18pt;
+            font-weight: bold;
+        }
+        .src {
+            font-size: 10pt;
+        }
+
+        /* Styles for the base layer selector bar */
+        .base-layer-selector {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.456);
+            padding: 5px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            z-index: 2000;
+        }
+
+        .base-layer-button {
+            background-color: #e6e6e6;
+            border: none;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .base-layer-button.active {
+            background-color: #f0f0f0;
+        }
+        .overlay-toggle {
+        position: absolute;
+        bottom: 70px; /* Adjust the vertical position as needed */
+        left:45%;
+        transform: translateX(-50%);
+        background-color: rgba(255, 255, 255, 0.456);
+        padding: 5px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        z-index: 2000;
+        }
+
+        .overlay-toggle input,
+        .overlay-toggle label {
+            margin: 5px;
+        }
+
+        .methane-toggle {
+        position: absolute;
+        bottom: 70px; /* Adjust the vertical position as needed */
+        left: 55%;
+        transform: translateX(-50%);
+        background-color: rgba(255, 255, 255, 0.456);
+        padding: 5px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        z-index: 2000;
+        }
+
+        .methane-toggle input,
+        .methane-toggle label {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div class="overlay-toggle">
+        <input type="checkbox" id="overlayToggle" onchange="toggleOverlayGroup(this)">
+        <label for="overlayToggle">High Res Maps</label>
+    </div>
+
+    <div class="methane-toggle">
+        <input type="checkbox" id="methaneToggle" onchange="toggleOverlayLayer(this, methane)">
+        <label for="methaneToggle">Methane Layer</label>
+        <input type="range" id="methaneOpacitySlider" min="0" max="1" step="0.1" value="1" onchange="updateMethaneOpacity(this.value)">
+    </div>
+       
+
+    <!-- Base layer selector bar -->
+    <div class="base-layer-selector">
+        <!-- Checkbox for Satellite layer -->
+        <input type="checkbox" id="satellite" name="baseLayer" onchange="toggleBaseLayer(this)">
+        <label for="satellite">Satellite</label>
+
+        <!-- Checkbox for OSM -->
+        <input type="checkbox" id="streets" name="baseLayer" onchange="toggleBaseLayer(this)">
+        <label for="streets">Streets</label>
+
+        <!-- Checkbox for Mono -->
+        <input type="checkbox" id="mono" name="baseLayer" onchange="toggleBaseLayer(this)">
+        <label for="mono">Mono</label>
+
+        <!-- Checkbox for Light -->
+        <input type="checkbox" id="light" name="baseLayer" onchange="toggleBaseLayer(this)">
+        <label for="light">Light</label>
+
+        <!-- Checkbox for Dark -->
+        <input type="checkbox" id="dark" name="baseLayer" onchange="toggleBaseLayer(this)">
+        <label for="dark">Dark</label>
+    </div>
+
+    
+    
+
+    
+    
+        <script>
+        /* **** Leaflet **** */
+
+        // Base layers
+        //  .. OpenStreetMap
+        var osm = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors', minZoom: 0, maxZoom: 22});
+
+        //  .. CartoDB Positron
+        var Mono = L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>', minZoom: 0, maxZoom: 22});
+
+        //  .. OSM Toner
+        var toner = L.tileLayer('https://api.mapbox.com/styles/v1/arigye/cl6f2vbbl001j14pajb0wn857/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYXJpZ3llIiwiYSI6ImNsNXd2NG84azBiaHYzaG8zdWRucmxjcTAifQ.sn9wczoKCm7LNUC2cESKIg', {attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. ', minZoom: 0, maxZoom: 25});
+            
+        //  .. Heat Maps
+        var methane = L.tileLayer('https://api.mapbox.com/styles/v1/arigye/clrkoiczz001s01r3chbx3j8f/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYXJpZ3llIiwiYSI6ImNsNXd2NG84azBiaHYzaG8zdWRucmxjcTAifQ.sn9wczoKCm7LNUC2cESKIg', { minZoom: 0, maxZoom: 25});
+
+        //  .. White background
+        var white = L.tileLayer("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEX///+nxBvIAAAAH0lEQVQYGe3BAQ0AAADCIPunfg43YAAAAAAAAAAA5wIhAAAB9aK9BAAAAABJRU5ErkJggg==", {minZoom: 0, maxZoom: 22});
+
+        // Overlay layers (TMS)
+        var lyr = L.tileLayer('./{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Frank= L.tileLayer('dry/Frank/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Frank_wet= L.tileLayer('wet/Frank/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Harriet = L.tileLayer('dry/Harriet/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Kalemera = L.tileLayer('dry/Kalemera/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Kasim = L.tileLayer('dry/Kasim/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Katera = L.tileLayer('dry/Katera/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Lutalo = L.tileLayer('dry/Lutalo/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Peter = L.tileLayer('dry/Peter/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Sarah = L.tileLayer('dry/Sarah/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Sarah_wet = L.tileLayer('wet/Sarah/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Everist = L.tileLayer('dry/Everist/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Francis = L.tileLayer('dry/Francis/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Jessy_wet = L.tileLayer('wet/Jessy_wet/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Jessy = L.tileLayer('dry/Jessy/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var John = L.tileLayer('dry/John/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Katulana = L.tileLayer('dry/Katulana/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Alex= L.tileLayer('dry/Alex/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Annet = L.tileLayer('dry/Annet/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Disan = L.tileLayer('dry/Disan/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Incafex = L.tileLayer('dry/Incafex/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Harriet_wet = L.tileLayer('wet/Harriet_wet/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Kasim_wet = L.tileLayer('wet/Kasim_wet/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Kisenyi = L.tileLayer('dry/Kisenyi/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Mobip = L.tileLayer('dry/Mobip/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Mukalazi = L.tileLayer('dry/Mukalazi/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Namande = L.tileLayer('dry/Namande/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Ramanthan = L.tileLayer('dry/Ramanthan/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Seguya = L.tileLayer('dry/Seguya/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Silvertory = L.tileLayer('dry/Silvertory/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var Steven = L.tileLayer('dry/Steven/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+
+
+        // Methane layers
+        var SarahM= L.tileLayer('methane/Dry/Sarah/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var WaswaM= L.tileLayer('methane/Dry/Waswa/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var DisaniM= L.tileLayer('methane/Dry/Disani/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var EnockM= L.tileLayer('methane/Dry/Enock/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var FrankM= L.tileLayer('methane/Dry/Frank/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var HarrietM= L.tileLayer('methane/Dry/Harriet/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var IncafexM= L.tileLayer('methane/Dry/Incafex/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var KalemeraM= L.tileLayer('methane/Dry/Kalemera/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var KamukamaM= L.tileLayer('methane/Dry/Kamukama/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var KasimM= L.tileLayer('methane/Dry/Kasim/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+        var KateraM= L.tileLayer('methane/Dry/Katera/{z}/{x}/{y}.png', {tms: 1, opacity: 1.0, attribution: "", minZoom: 0, maxZoom: 22});
+
+        // Separate Layer Groups for Base Layers and Overlay Layers
+        var baseLayerGroup = L.layerGroup([toner]);
+        var overlayLayerGroup = L.layerGroup([lyr, Frank, Frank_wet, Harriet, Kalemera, Kasim, Katera, Lutalo, Peter, Sarah, Sarah_wet, Everist, Francis, Jessy, Jessy_wet, John, Katulana, Alex, Annet, Disan, Incafex, Harriet_wet, Kasim_wet, Kisenyi, Mobip, Mukalazi, Namande, Ramanthan, Seguya, Silvertory, Steven]);
+        var methaneLayer = L.layerGroup([SarahM, WaswaM, DisaniM, EnockM, FrankM, HarrietM, IncafexM, KalemeraM, KamukamaM, KasimM, KateraM]);
+
+        // Map
+        var map = L.map('map', {
+            center: [1.4746873431836949, 32.006671436136216],
+            zoom: 7,
+            minZoom: 0,
+            maxZoom: 22,
+            layers: [baseLayerGroup, overlayLayerGroup, methaneLayer]  // Make sure methaneLayer is added after overlayLayerGroup
+        });
+
+        var basemaps = {"Mono": Mono, "Satellite": toner}
+        var overlaymaps = {"Layer": methane, SarahM, WaswaM, DisaniM, EnockM, FrankM, HarrietM, IncafexM, KalemeraM, KamukamaM, KasimM, KateraM, lyr,Frank, Frank_wet, Sarah_wet, Kalemera,Kasim,Katera,Lutalo, Peter, Sarah, Everist, Francis, Jessy, Jessy_wet, John, Katulana, Alex, Annet, Disan, Incafex, Harriet_wet, Kasim_wet, Kisenyi, Mobip, Mukalazi, Namande, Ramanthan, Seguya, Silvertory, Steven}
+        
+        // Title
+        var title = L.control();
+        title.onAdd = function(map) {
+            this._div = L.DomUtil.create('div', 'ctl title');
+            this.update();
+            return this._div;
+        };
+        title.update = function(props) {
+            this._div.innerHTML = "Punta360 maps";
+        };
+        title.addTo(map);
+
+        // Note
+         var src = 'Generated by <a href="http://www.punta360ug.com">Punta360</a>';
+        var title = L.control({position: 'bottomleft'});
+        title.onAdd = function(map) {
+            this._div = L.DomUtil.create('div', 'ctl src');
+            this.update();
+            return this._div;
+        };
+        title.update = function(props) {
+            this._div.innerHTML = src;
+        };
+        title.addTo(map);
+
+
+        // Add base layers
+        L.control.layers(basemaps, overlaymaps, {collapsed: true}).addTo(map);
+       
+
+        // Control 2: This add a scale to the map
+        L.control.scale().addTo(map);
+
+        //Add markers
+        var markers = L.markerClusterGroup({
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            iconCreateFunction: function (cluster) {
+              var childCount = cluster.getChildCount();
+      
+              var size, color;
+              if (childCount < 5) {
+                size = [30, 30];
+                color = '#51bbd6';
+              } else if (childCount < 10) {
+                size = [45, 45];
+                color = '#f1f075';
+              } else {
+                size = [60, 60];
+                color = '#f28cb1';
+              }
+      
+              return L.divIcon({
+                html: '<div style="background-color: ' + color + '; width: ' + size[0] + 'px; height: ' + size[1] + 'px; border-radius: 50%; text-align: center; line-height: ' + size[1] + 'px; color: black;">' + childCount + '</div>',
+                className: 'custom-cluster-icon',
+                iconSize: size
+              });
+            }
+          });
+      
+          markers.addLayer(L.marker([-0.566643183, 30.56712031]).bindPopup('ALEX'));
+          markers.addLayer(L.marker([-0.364554199, 30.54023946]).bindPopup('ANNET BWONGYERERWA'));
+          markers.addLayer(L.marker([-0.552843008, 30.56361248]).bindPopup('JB TUMUSIIME'));
+          markers.addLayer(L.marker([-0.549905696, 30.56001950]).bindPopup('PATRICK TUGEI'));
+          markers.addLayer(L.marker([-0.543663190, 30.53716012]).bindPopup('RHODA TUMUSIIME'));
+          markers.addLayer(L.marker([-0.465280367, 30.69391411]).bindPopup('AUTHOR BYABASHAIJA'));
+          markers.addLayer(L.marker([-0.471984004, 30.67604926]).bindPopup('KATEBA GODFREY'));
+          markers.addLayer(L.marker([-0.455947202, 30.69344615]).bindPopup('WINSTON A'));
+          markers.addLayer(L.marker([-0.456176866, 30.69400615]).bindPopup('WINSTON B'));
+          markers.addLayer(L.marker([-0.343368184, 30.53994559]).bindPopup('EVARIST MUHUMUZA'));
+          markers.addLayer(L.marker([-0.354090189, 30.54568342]).bindPopup('FRANCIS BAINOMUGISHA'));
+          markers.addLayer(L.marker([-0.349792368, 30.56114410]).bindPopup('RWAMPORORO JESSY'));
+          markers.addLayer(L.marker([-0.529282191, 30.55076847]).bindPopup('JOHN GUMISIRIZA'));
+          markers.addLayer(L.marker([-0.351693509, 30.52619064]).bindPopup('BYARUHANGA SILVERTORY'));
+          markers.addLayer(L.marker([-0.436508353, 30.56444346]).bindPopup('ISREAL MWEBAZE'));
+          markers.addLayer(L.marker([-0.421549003, 30.58535975]).bindPopup('JOSEPH MAKUBA'));
+          markers.addLayer(L.marker([-0.429929355, 30.56996999]).bindPopup('LAUBEN'));
+          markers.addLayer(L.marker([-0.453033694, 30.55294877]).bindPopup('TANDEKWIRE NATHAN'));
+      
+          markers.addLayer(L.marker([1.3977879660, 32.57168414]).bindPopup('DISAN SEKKAMATE'));
+          markers.addLayer(L.marker([1.3760386460, 32.57712165]).bindPopup('CHARLSE SEGUYA'));
+          markers.addLayer(L.marker([1.3898739830, 32.54920228]).bindPopup('KISENYI'));
+          markers.addLayer(L.marker([1.3978401440, 32.57298442]).bindPopup('MUKALAZI KULANIMA'));
+          markers.addLayer(L.marker([1.3760386460, 32.57712165]).bindPopup('NAMANDE HARRIET'));
+          markers.addLayer(L.marker([1.3800346350, 32.57972196]).bindPopup('BESASIRA STEVEN'));
+          markers.addLayer(L.marker([1.4873671260, 32.29022846]).bindPopup('ENOCK (MOBIP)'));
+          markers.addLayer(L.marker([1.4515554870, 32.30347447]).bindPopup('INCAFEX RANCH'));
+          markers.addLayer(L.marker([1.3621212920, 32.32492393]).bindPopup('DR. KAMUKAMA'));
+          markers.addLayer(L.marker([1.4911816460, 32.32261798]).bindPopup('WASWA WILLSON'));
+          markers.addLayer(L.marker([1.4782624930, 32.00409200]).bindPopup('KIVIRI FRANK'));
+          markers.addLayer(L.marker([1.5239483080, 32.02240193]).bindPopup('KAKOOZA PETER'));
+          markers.addLayer(L.marker([1.4972724820, 32.05034577]).bindPopup('LUTALO GODFREY'));
+          markers.addLayer(L.marker([1.4836876380, 31.99691658]).bindPopup('RWAKASHAMBYA EMMANUAL'));
+          markers.addLayer(L.marker([1.4217266400, 32.14963126]).bindPopup('SARAH KAZOORA'));
+          markers.addLayer(L.marker([1.3568149610, 32.40791432]).bindPopup('NANSAMBA HARRIET'));
+          markers.addLayer(L.marker([1.2945703190, 32.34566712]).bindPopup('KALEMERA & MUSINGUZI'));
+          markers.addLayer(L.marker([1.2967936610, 32.36573047]).bindPopup('KASIM KIWANUKA'));
+          markers.addLayer(L.marker([1.2963759910, 32.37420926]).bindPopup('KATERA JOHN BOSCO'));
+          markers.addLayer(L.marker([1.3042693130, 32.36248281]).bindPopup('KATULANA EDWARD'));
+          markers.addLayer(L.marker([1.2854173230, 32.35530916]).bindPopup('RAMANTHAN AZARO'));
+          
+          // Add more markers...
+      
+          map.addLayer(markers);
+
+
+        // Function to toggle base layer visibility
+        function toggleBaseLayer(element) {
+            var layerId = element.id;
+
+            // Uncheck all checkboxes
+            document.querySelectorAll('input[name="baseLayer"]').forEach(function (checkbox) {
+                if (checkbox.id !== layerId) {
+                    checkbox.checked = false;
+                }
+            });
+
+            // Remove existing base layers
+            map.removeLayer(baseLayerGroup);
+
+            // Add selected base layer
+            switch (layerId) {
+                case 'satellite':
+                    baseLayerGroup = L.layerGroup([toner]);
+                    break;
+                case 'streets':
+                    baseLayerGroup = L.layerGroup([osm]);
+                    break;
+                case 'mono':
+                    baseLayerGroup = L.layerGroup([Mono]);
+                    break;
+                case 'light':
+                    baseLayerGroup = L.layerGroup([white]);
+                    break;
+                case 'dark':
+                    baseLayerGroup = L.layerGroup([toner]);
+                    break;
+                default:
+                    baseLayerGroup = L.layerGroup([toner]);
+                    break;
+            }
+
+            // Add base layer group back to the map
+            map.addLayer(baseLayerGroup);
+        }
+
+        // Function to toggle overlay layer visibility
+        function toggleOverlayLayer(element, layer) {
+            if (element.checked) {
+                map.addLayer(layer);
+            } else {
+                map.removeLayer(layer);
+            }
+        }
+
+        // Function to toggle overlay group visibility
+        function toggleOverlayGroup(element) {
+            if (element.checked) {
+                map.addLayer(overlayLayerGroup);
+            } else {
+                map.removeLayer(overlayLayerGroup);
+            }
+        }
+
+        // Function to update methane layer opacity
+        function updateMethaneOpacity(opacity) {
+            methaneLayer.eachLayer(function (layer) {
+                layer.setOpacity(opacity);
+            });
+        }
+
+        // Set overlay group checked by default
+        document.getElementById('overlayToggle').checked = true;
+        toggleOverlayGroup(document.getElementById('overlayToggle')); // Trigger the function to show the overlay group
+
+        // Set methane layer checked by default
+        document.getElementById('methaneToggle').checked = true;
+        toggleOverlayLayer(document.getElementById('methaneToggle'), methaneLayer); // Trigger the function to show the methane overlay layer
+
+        // Set checkbox states based on layer visibility
+        document.getElementById('satellite').checked = true; // Default Satellite as active
+        document.getElementById('streets').checked = false;
+        document.getElementById('mono').checked = false;
+        document.getElementById('light').checked = false;
+        document.getElementById('dark').checked = false;
+    </script>
+    
+</body>
+</html>
+
+        

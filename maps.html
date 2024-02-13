@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaflet Map with Heatmap</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+</head>
+<body>
+
+<style>
+  #map {
+    height: 500px;
+  }
+
+  #legend {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: white;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+</style>
+
+<input type="file" id="fileInput" accept=".csv" />
+<button onclick="renderHeatmap()">Render Heatmap</button>
+<button onclick="flyToHeatmap()">Fly to Heatmap Location</button>
+<div id="map"></div>
+<div id="legend"></div>
+
+<script>
+  var map = L.map('map').setView([0, 0], 2);
+  var heatData = [];
+  var heatLayer;
+
+  // Add the basemap layer (replace with your desired basemap)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+  function handleFileSelect(event) {
+    var file = event.target.files[0];
+    if (file) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var csvData = e.target.result;
+        processData(csvData);
+      };
+      reader.readAsText(file);
+    }
+  }
+
+  function processData(csvData) {
+    heatData = []; // Reset data
+    var rows = csvData.split('\n');
+    for (var i = 1; i < rows.length; i++) {
+      var columns = rows[i].split(',');
+      var latitude = parseFloat(columns[3]);
+      var longitude = parseFloat(columns[2]);
+      var concentration = parseFloat(columns[7]);
+
+      // Check if coordinates are valid numbers
+      if (!isNaN(latitude) && !isNaN(longitude) && !isNaN(concentration)) {
+        heatData.push([latitude, longitude, concentration]);
+      }
+    }
+    renderHeatmap();
+  }
+
+  function renderHeatmap() {
+    if (heatData.length > 0) {
+      if (heatLayer) {
+        map.removeLayer(heatLayer);
+      }
+
+      // Calculate min, mid, and max values of the CxHy column
+      var minValue = Math.min(...heatData.map(point => point[2]));
+      var maxValue = Math.max(...heatData.map(point => point[2]));
+      var midValue = (minValue + maxValue) / 2;
+
+      // Set dynamic gradient based on min, mid, and max values
+      var dynamicGradient = {};
+      dynamicGradient[minValue] = 'green';
+      dynamicGradient[midValue] = 'yellow';
+      dynamicGradient[maxValue] = 'red';
+
+      heatLayer = L.heatLayer(heatData, {
+        radius: 25,
+        gradient: dynamicGradient,
+        opacity: 0.5
+      }).addTo(map);
+
+      // Display calculated values and color scale
+      displayLegend(minValue, midValue, maxValue);
+    }
+  }
+
+  function displayLegend(minValue, midValue, maxValue) {
+    var legend = document.getElementById('legend');
+    legend.innerHTML = `
+      <strong>Color Scale:</strong><br>
+      <div style="background: green; height: 10px; width: 20px; display: inline-block;"></div> ${minValue.toFixed(2)}<br>
+      <div style="background: yellow; height: 10px; width: 20px; display: inline-block;"></div> ${midValue.toFixed(2)}<br>
+      <div style="background: red; height: 10px; width: 20px; display: inline-block;"></div> ${maxValue.toFixed(2)}<br>
+    `;
+  }
+
+  function flyToHeatmap() {
+    if (heatData.length > 0) {
+      var firstCoordinate = heatData[0];
+      map.flyTo([firstCoordinate[0], firstCoordinate[1]], 15);
+    }
+  }
+
+  // Opacity slider
+  var opacitySlider = document.getElementById('opacity');
+  opacitySlider.addEventListener('input', function() {
+    var opacityValue = parseFloat(opacitySlider.value) / 100;
+    heatLayer.setOptions({ opacity: opacityValue });
+  });
+
+</script>
+
+</body>
+</html>
