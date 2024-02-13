@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <TileMap version="1.0.0" tilemapservice="http://tms.osgeo.org/1.0.0">
+      <Title>Steven_merc.tiff</Title>
+      <Abstract></Abstract>
+      <SRS>EPSG:3857</SRS>
+      <BoundingBox minx="32.57785293623650" miny="1.37788338695672" maxx="32.58054870438601" maxy="1.38192406022089"/>
+      <Origin x="32.57785293623650" y="1.37788338695672"/>
+      <TileFormat width="256" height="256" mime-type="image/png" extension="png"/>
+      <TileSets profile="mercator">
+        <TileSet href="16" units-per-pixel="2.38865713348389" order="16"/>
+        <TileSet href="17" units-per-pixel="1.19432856674194" order="17"/>
+        <TileSet href="18" units-per-pixel="0.59716428337097" order="18"/>
+        <TileSet href="19" units-per-pixel="0.29858214168549" order="19"/>
+      </TileSets>
+    </TileMap>
+    
